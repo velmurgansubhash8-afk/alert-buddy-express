@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useEmergencyAlerts } from '@/hooks/useEmergencyAlerts';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { EmergencyButton } from '@/components/EmergencyButton';
 import { ContactsList } from '@/components/ContactsList';
 import { AlertsFeed } from '@/components/AlertsFeed';
@@ -21,6 +22,9 @@ export default function Index() {
     addContact,
     deleteContact,
   } = useEmergencyAlerts();
+
+  // Initialize push notifications
+  usePushNotifications();
 
   // Redirect to auth if not logged in
   useEffect(() => {
