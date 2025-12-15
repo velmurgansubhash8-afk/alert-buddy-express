@@ -162,7 +162,7 @@ export function useEmergencyAlerts() {
         const mapsLink = generateMapsLink(location.latitude, location.longitude);
 
         // Create the alert
-        const { error: alertError } = await supabase.from('emergency_alerts').insert({
+        const { data: alertData, error: alertError } = await supabase.from('emergency_alerts').insert({
           sender_id: user.id,
           sender_name: profile.name,
           sender_unique_id: profile.unique_id,
@@ -170,23 +170,34 @@ export function useEmergencyAlerts() {
           latitude: location.latitude,
           longitude: location.longitude,
           maps_link: mapsLink,
-        });
+        }).select().single();
 
         if (alertError) throw alertError;
 
-        // Get nearby users
-        const { data: nearbyUsers, error: nearbyError } = await supabase.rpc('get_nearby_users', {
-          user_lat: location.latitude,
-          user_lon: location.longitude,
-          radius_km: 1.0,
-          exclude_user_id: user.id,
-        });
+        // Send push notifications to nearby users via edge function
+        let nearbyCount = 0;
+        try {
+          const { data: pushResult, error: pushError } = await supabase.functions.invoke('send-push-notification', {
+            body: {
+              alertId: alertData.id,
+              senderName: profile.name,
+              emergencyType,
+              latitude: location.latitude,
+              longitude: location.longitude,
+              excludeUserId: user.id,
+              radiusKm: 1.0
+            }
+          });
 
-        if (nearbyError) {
-          console.error('Error getting nearby users:', nearbyError);
+          if (pushError) {
+            console.error('Error sending push notifications:', pushError);
+          } else {
+            nearbyCount = pushResult?.nearbyUsersCount || 0;
+            console.log('Push notification result:', pushResult);
+          }
+        } catch (pushErr) {
+          console.error('Failed to invoke push notification function:', pushErr);
         }
-
-        const nearbyCount = (nearbyUsers as NearbyUser[] | null)?.length || 0;
 
         toast({
           title: 'Emergency Alert Sent!',
