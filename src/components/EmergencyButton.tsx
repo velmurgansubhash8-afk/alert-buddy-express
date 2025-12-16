@@ -27,6 +27,7 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
   const [showBloodSelector, setShowBloodSelector] = useState(false);
   const [selectedBloodGroup, setSelectedBloodGroup] = useState<string | null>(null);
   const [showChat, setShowChat] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
   
   const { sendBloodRequest, sending: bloodSending } = useBloodRequests();
   const { getCurrentLocation, generateMapsLink } = useGeolocation();
@@ -73,15 +74,21 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
   };
 
   const handleBloodButtonClick = async () => {
+    setGettingLocation(true);
     try {
       const location = await getCurrentLocation();
       if (location) {
         setCurrentMapsLink(generateMapsLink(location.latitude, location.longitude));
+      } else {
+        setCurrentMapsLink('');
       }
       setShowBloodSelector(true);
     } catch (error) {
       console.error('Error getting location:', error);
+      setCurrentMapsLink('');
       setShowBloodSelector(true);
+    } finally {
+      setGettingLocation(false);
     }
   };
 
@@ -208,11 +215,11 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
         {/* Blood Request Button */}
         <button
           onClick={handleBloodButtonClick}
-          disabled={bloodSending}
+          disabled={bloodSending || gettingLocation}
           className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-red-600 text-white font-semibold transition-all hover:bg-red-700 active:scale-95 shadow-lg disabled:opacity-50"
         >
           <Droplet className="w-6 h-6" />
-          <span>{bloodSending ? 'Sending...' : 'Request Blood'}</span>
+          <span>{gettingLocation ? 'Getting Location...' : bloodSending ? 'Sending...' : 'Request Blood'}</span>
         </button>
         
         <div className="flex gap-3">
