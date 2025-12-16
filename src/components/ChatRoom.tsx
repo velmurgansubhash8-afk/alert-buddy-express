@@ -19,9 +19,10 @@ interface ChatMessage {
 
 interface ChatRoomProps {
   onClose: () => void;
+  bloodRequestId?: string;
 }
 
-export function ChatRoom({ onClose }: ChatRoomProps) {
+export function ChatRoom({ onClose, bloodRequestId }: ChatRoomProps) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -94,6 +95,7 @@ export function ChatRoom({ onClose }: ChatRoomProps) {
       const { error } = await supabase.from('chat_messages').insert({
         sender_id: user.id,
         receiver_id: directChatUser?.id || null,
+        blood_request_id: bloodRequestId || null,
         message: newMessage.trim(),
         is_public: activeTab === 'public' && !directChatUser,
         sender_name: profile?.name || 'Unknown'

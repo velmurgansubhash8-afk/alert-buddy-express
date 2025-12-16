@@ -7,8 +7,10 @@ import { EmergencyButton } from '@/components/EmergencyButton';
 import { ContactsList } from '@/components/ContactsList';
 import { AlertsFeed } from '@/components/AlertsFeed';
 import { ProfileHeader } from '@/components/ProfileHeader';
+import { BloodRequestsFeed } from '@/components/BloodRequestsFeed';
+import { Footer } from '@/components/Footer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Phone, Bell, Users } from 'lucide-react';
+import { Phone, Bell, Users, Droplet } from 'lucide-react';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -69,18 +71,22 @@ export default function Index() {
 
         {/* Bottom Tabs */}
         <Tabs defaultValue="contacts" className="w-full">
-          <TabsList className="w-full grid grid-cols-3 mb-4">
-            <TabsTrigger value="contacts" className="gap-2">
+          <TabsList className="w-full grid grid-cols-4 mb-4">
+            <TabsTrigger value="contacts" className="gap-1">
               <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Contacts</span>
+              <span className="hidden sm:inline text-xs">Contacts</span>
             </TabsTrigger>
-            <TabsTrigger value="alerts" className="gap-2">
+            <TabsTrigger value="blood" className="gap-1">
+              <Droplet className="w-4 h-4" />
+              <span className="hidden sm:inline text-xs">Blood</span>
+            </TabsTrigger>
+            <TabsTrigger value="alerts" className="gap-1">
               <Bell className="w-4 h-4" />
-              <span className="hidden sm:inline">Alerts</span>
+              <span className="hidden sm:inline text-xs">Alerts</span>
             </TabsTrigger>
-            <TabsTrigger value="quick" className="gap-2">
+            <TabsTrigger value="quick" className="gap-1">
               <Phone className="w-4 h-4" />
-              <span className="hidden sm:inline">Quick Dial</span>
+              <span className="hidden sm:inline text-xs">Dial</span>
             </TabsTrigger>
           </TabsList>
 
@@ -90,6 +96,10 @@ export default function Index() {
               onAdd={addContact}
               onDelete={deleteContact}
             />
+          </TabsContent>
+
+          <TabsContent value="blood" className="mt-0">
+            <BloodRequestsFeed />
           </TabsContent>
 
           <TabsContent value="alerts" className="mt-0">
@@ -127,6 +137,8 @@ export default function Index() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <Footer />
     </div>
   );
 }
