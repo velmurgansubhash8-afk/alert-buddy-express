@@ -1,6 +1,11 @@
 import { useState } from 'react';
-import { AlertTriangle, Phone, Flame, Heart, Shield } from 'lucide-react';
+import { AlertTriangle, Phone, Flame, Heart, Shield, Droplet, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BloodGroupSelector } from './BloodGroupSelector';
+import { BloodRequestModal } from './BloodRequestModal';
+import { ChatRoom } from './ChatRoom';
+import { useBloodRequests } from '@/hooks/useBloodRequests';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 interface EmergencyButtonProps {
   onTrigger: (emergencyType: string) => Promise<{ success: boolean; nearbyCount: number }>;
@@ -19,6 +24,13 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
   const [triggering, setTriggering] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [holdTimer, setHoldTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showBloodSelector, setShowBloodSelector] = useState(false);
+  const [selectedBloodGroup, setSelectedBloodGroup] = useState<string | null>(null);
+  const [showChat, setShowChat] = useState(false);
+  
+  const { sendBloodRequest, sending: bloodSending } = useBloodRequests();
+  const { getCurrentLocation, generateMapsLink } = useGeolocation();
+  const [currentMapsLink, setCurrentMapsLink] = useState('');
 
   const handlePress = () => {
     if (disabled || triggering) return;
@@ -58,6 +70,26 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
     } finally {
       setTriggering(false);
     }
+  };
+
+  const handleBloodButtonClick = async () => {
+    setShowTypes(false);
+    const location = await getCurrentLocation();
+    if (location) {
+      setCurrentMapsLink(generateMapsLink(location.latitude, location.longitude));
+    }
+    setShowBloodSelector(true);
+  };
+
+  const handleBloodGroupSelect = (bloodGroup: string) => {
+    setSelectedBloodGroup(bloodGroup);
+    setShowBloodSelector(false);
+  };
+
+  const handleBloodRequestSubmit = async (message: string) => {
+    if (!selectedBloodGroup) return;
+    await sendBloodRequest(selectedBloodGroup, message);
+    setSelectedBloodGroup(null);
   };
 
   return (
@@ -134,6 +166,18 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
                   <span>{type.label}</span>
                 </button>
               ))}
+              {/* Blood Group Button - Next to Medical */}
+              <button
+                onClick={handleBloodButtonClick}
+                className={cn(
+                  'flex flex-col items-center justify-center gap-3 p-6 rounded-2xl',
+                  'transition-all duration-200 active:scale-95',
+                  'bg-red-600 text-white font-semibold shadow-lg col-span-2'
+                )}
+              >
+                <Droplet className="w-10 h-10" />
+                <span>Blood Request</span>
+              </button>
             </div>
             <button
               onClick={() => setShowTypes(false)}
@@ -145,14 +189,45 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
         </div>
       )}
 
-      {/* Quick dial button */}
-      <a
-        href="tel:911"
-        className="flex items-center gap-3 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium transition-all hover:bg-secondary/80"
-      >
-        <Phone className="w-5 h-5" />
-        <span>Call 911</span>
-      </a>
+      {/* Blood Group Selector */}
+      {showBloodSelector && (
+        <BloodGroupSelector
+          onSelect={handleBloodGroupSelect}
+          onClose={() => setShowBloodSelector(false)}
+        />
+      )}
+
+      {/* Blood Request Modal */}
+      {selectedBloodGroup && (
+        <BloodRequestModal
+          bloodGroup={selectedBloodGroup}
+          mapsLink={currentMapsLink}
+          onSubmit={handleBloodRequestSubmit}
+          onClose={() => setSelectedBloodGroup(null)}
+          sending={bloodSending}
+        />
+      )}
+
+      {/* Chat Room */}
+      {showChat && <ChatRoom onClose={() => setShowChat(false)} />}
+
+      {/* Quick actions */}
+      <div className="flex gap-3">
+        <a
+          href="tel:911"
+          className="flex items-center gap-3 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium transition-all hover:bg-secondary/80"
+        >
+          <Phone className="w-5 h-5" />
+          <span>Call 911</span>
+        </a>
+        <button
+          onClick={() => setShowChat(true)}
+          className="flex items-center gap-3 px-6 py-3 rounded-full bg-primary text-primary-foreground font-medium transition-all hover:bg-primary/90"
+        >
+          <MessageCircle className="w-5 h-5" />
+          <span>Chat</span>
+        </button>
+      </div>
     </div>
   );
 }
