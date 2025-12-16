@@ -73,12 +73,16 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
   };
 
   const handleBloodButtonClick = async () => {
-    setShowTypes(false);
-    const location = await getCurrentLocation();
-    if (location) {
-      setCurrentMapsLink(generateMapsLink(location.latitude, location.longitude));
+    try {
+      const location = await getCurrentLocation();
+      if (location) {
+        setCurrentMapsLink(generateMapsLink(location.latitude, location.longitude));
+      }
+      setShowBloodSelector(true);
+    } catch (error) {
+      console.error('Error getting location:', error);
+      setShowBloodSelector(true);
     }
-    setShowBloodSelector(true);
   };
 
   const handleBloodGroupSelect = (bloodGroup: string) => {
@@ -166,18 +170,6 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
                   <span>{type.label}</span>
                 </button>
               ))}
-              {/* Blood Group Button - Next to Medical */}
-              <button
-                onClick={handleBloodButtonClick}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-3 p-6 rounded-2xl',
-                  'transition-all duration-200 active:scale-95',
-                  'bg-red-600 text-white font-semibold shadow-lg col-span-2'
-                )}
-              >
-                <Droplet className="w-10 h-10" />
-                <span>Blood Request</span>
-              </button>
             </div>
             <button
               onClick={() => setShowTypes(false)}
@@ -216,10 +208,11 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
         {/* Blood Request Button */}
         <button
           onClick={handleBloodButtonClick}
-          className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-red-600 text-white font-semibold transition-all hover:bg-red-700 active:scale-95 shadow-lg"
+          disabled={bloodSending}
+          className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-red-600 text-white font-semibold transition-all hover:bg-red-700 active:scale-95 shadow-lg disabled:opacity-50"
         >
           <Droplet className="w-6 h-6" />
-          <span>Request Blood</span>
+          <span>{bloodSending ? 'Sending...' : 'Request Blood'}</span>
         </button>
         
         <div className="flex gap-3">
