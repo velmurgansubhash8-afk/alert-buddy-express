@@ -36,12 +36,19 @@ export function BloodRequestModal({ bloodGroup, mapsLink, onSubmit, onClose, sen
           </button>
         </div>
 
-        <div className="flex items-center gap-2 p-3 bg-secondary rounded-lg">
-          <MapPin className="w-5 h-5 text-primary" />
-          <a href={mapsLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline truncate">
-            View Location
-          </a>
-        </div>
+        {mapsLink ? (
+          <div className="flex items-center gap-2 p-3 bg-secondary rounded-lg">
+            <MapPin className="w-5 h-5 text-primary" />
+            <a href={mapsLink} target="_blank" rel="noopener noreferrer" className="text-sm text-primary underline truncate">
+              View Your Location
+            </a>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 p-3 bg-yellow-500/20 rounded-lg">
+            <MapPin className="w-5 h-5 text-yellow-500" />
+            <span className="text-sm text-yellow-500">Location will be fetched when sending</span>
+          </div>
+        )}
 
         <Textarea
           placeholder="Add a message (e.g., urgent need, hospital name, contact info)..."
