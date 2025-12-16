@@ -89,7 +89,7 @@ export default function Auth() {
       <div className="flex-1 flex flex-col items-center justify-center p-6 pb-0">
         <div className="text-center mb-8 animate-slide-up">
           <VSLogo size="lg" className="mx-auto mb-4" />
-          <h1 className="text-3xl font-bold mb-2">VS Emergency Alert</h1>
+          <h1 className="text-3xl font-bold mb-2">Emergency Alert</h1>
           <p className="text-muted-foreground">Stay connected. Stay safe.</p>
         </div>
 
