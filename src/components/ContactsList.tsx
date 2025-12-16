@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
 import { Plus, Trash2, Phone, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+
+const AddButton = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<typeof Button>>(
+  (props, ref) => (
+    <Button ref={ref} size="sm" variant="secondary" className="gap-2" {...props}>
+      <Plus className="w-4 h-4" />
+      Add
+    </Button>
+  )
+);
+AddButton.displayName = 'AddButton';
 
 interface Contact {
   id: string;
@@ -49,10 +59,7 @@ export function ContactsList({ contacts, onAdd, onDelete }: ContactsListProps) {
         <h3 className="font-semibold text-lg">Emergency Contacts</h3>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" variant="secondary" className="gap-2">
-              <Plus className="w-4 h-4" />
-              Add
-            </Button>
+            <AddButton />
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>

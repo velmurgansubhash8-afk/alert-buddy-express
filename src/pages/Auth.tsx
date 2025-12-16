@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, AlertTriangle, Mail, Lock, User, Hash } from 'lucide-react';
+import { AlertTriangle, Mail, Lock, User, Hash } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
+import { VSLogo } from '@/components/VSLogo';
+import { Footer } from '@/components/Footer';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -86,10 +88,8 @@ export default function Auth() {
       {/* Hero Section */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 pb-0">
         <div className="text-center mb-8 animate-slide-up">
-          <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-primary/20 flex items-center justify-center">
-            <Shield className="w-10 h-10 text-primary" />
-          </div>
-          <h1 className="text-3xl font-bold mb-2">Emergency Alert</h1>
+          <VSLogo size="lg" className="mx-auto mb-4" />
+          <h1 className="text-3xl font-bold mb-2">VS Emergency Alert</h1>
           <p className="text-muted-foreground">Stay connected. Stay safe.</p>
         </div>
 
@@ -180,12 +180,13 @@ export default function Auth() {
       </div>
 
       {/* Footer */}
-      <div className="p-6 text-center text-sm text-muted-foreground animate-slide-up-delay-2">
+      <div className="p-4 text-center text-sm text-muted-foreground animate-slide-up-delay-2">
         <div className="flex items-center justify-center gap-2 mb-2">
           <AlertTriangle className="w-4 h-4 text-warning" />
           <span>For emergencies, always call 911 first</span>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
