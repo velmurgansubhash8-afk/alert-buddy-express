@@ -14,6 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      blood_requests: {
+        Row: {
+          blood_group: string
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          maps_link: string
+          message: string | null
+          sender_name: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          blood_group: string
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          maps_link: string
+          message?: string | null
+          sender_name: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          blood_group?: string
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          maps_link?: string
+          message?: string | null
+          sender_name?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          blood_request_id: string | null
+          created_at: string
+          id: string
+          is_public: boolean
+          message: string
+          receiver_id: string | null
+          sender_id: string
+          sender_name: string
+        }
+        Insert: {
+          blood_request_id?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          message: string
+          receiver_id?: string | null
+          sender_id: string
+          sender_name: string
+        }
+        Update: {
+          blood_request_id?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          message?: string
+          receiver_id?: string | null
+          sender_id?: string
+          sender_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_blood_request_id_fkey"
+            columns: ["blood_request_id"]
+            isOneToOne: false
+            referencedRelation: "blood_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emergency_alerts: {
         Row: {
           created_at: string
