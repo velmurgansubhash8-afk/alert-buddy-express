@@ -212,21 +212,32 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
       {showChat && <ChatRoom onClose={() => setShowChat(false)} />}
 
       {/* Quick actions */}
-      <div className="flex gap-3">
-        <a
-          href="tel:911"
-          className="flex items-center gap-3 px-6 py-3 rounded-full bg-secondary text-secondary-foreground font-medium transition-all hover:bg-secondary/80"
-        >
-          <Phone className="w-5 h-5" />
-          <span>Call 911</span>
-        </a>
+      <div className="flex flex-col gap-3 w-full max-w-xs">
+        {/* Blood Request Button */}
         <button
-          onClick={() => setShowChat(true)}
-          className="flex items-center gap-3 px-6 py-3 rounded-full bg-primary text-primary-foreground font-medium transition-all hover:bg-primary/90"
+          onClick={handleBloodButtonClick}
+          className="flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-red-600 text-white font-semibold transition-all hover:bg-red-700 active:scale-95 shadow-lg"
         >
-          <MessageCircle className="w-5 h-5" />
-          <span>Chat</span>
+          <Droplet className="w-6 h-6" />
+          <span>Request Blood</span>
         </button>
+        
+        <div className="flex gap-3">
+          <a
+            href="tel:911"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-secondary text-secondary-foreground font-medium transition-all hover:bg-secondary/80"
+          >
+            <Phone className="w-5 h-5" />
+            <span>Call 911</span>
+          </a>
+          <button
+            onClick={() => setShowChat(true)}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-primary text-primary-foreground font-medium transition-all hover:bg-primary/90"
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span>Chat</span>
+          </button>
+        </div>
       </div>
     </div>
   );
