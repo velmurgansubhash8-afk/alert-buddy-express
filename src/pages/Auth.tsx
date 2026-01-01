@@ -1,12 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Mail, Lock, User, Hash } from 'lucide-react';
+import { AlertTriangle, Mail, Lock, User, Hash, Shield, Flame, Heart, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { VSLogo } from '@/components/VSLogo';
 import { Footer } from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
+
+type UserRole = 'user' | 'police' | 'fire_rescue' | 'medical';
+
+const ROLE_OPTIONS: { value: UserRole; label: string; icon: React.ReactNode; color: string }[] = [
+  { value: 'user', label: 'Regular User', icon: <Users className="w-5 h-5" />, color: 'bg-blue-500' },
+  { value: 'police', label: 'Police Department', icon: <Shield className="w-5 h-5" />, color: 'bg-indigo-500' },
+  { value: 'fire_rescue', label: 'Fire & Rescue', icon: <Flame className="w-5 h-5" />, color: 'bg-orange-500' },
+  { value: 'medical', label: 'Medical Services', icon: <Heart className="w-5 h-5" />, color: 'bg-red-500' },
+];
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -19,6 +29,7 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [uniqueId, setUniqueId] = useState('');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('user');
 
   // Redirect if already logged in
   useEffect(() => {
@@ -28,7 +39,8 @@ export default function Auth() {
   }, [user, navigate]);
 
   const generateUniqueId = () => {
-    const id = 'EM-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const prefix = selectedRole === 'user' ? 'EM' : selectedRole === 'police' ? 'PD' : selectedRole === 'fire_rescue' ? 'FR' : 'MD';
+    const id = prefix + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     setUniqueId(id);
   };
 
@@ -55,9 +67,18 @@ export default function Auth() {
             variant: 'destructive',
           });
         } else {
+          // Insert user role after successful signup
+          const { data: { user: newUser } } = await supabase.auth.getUser();
+          if (newUser) {
+            await supabase.from('user_roles').insert({
+              user_id: newUser.id,
+              role: selectedRole
+            });
+          }
+          
           toast({
             title: 'Account Created!',
-            description: 'You can now use the app.',
+            description: `You're registered as ${ROLE_OPTIONS.find(r => r.value === selectedRole)?.label}.`,
           });
         }
       } else {
@@ -111,6 +132,31 @@ export default function Auth() {
                 </div>
               </div>
 
+              {/* Role Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Register As</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {ROLE_OPTIONS.map((role) => (
+                    <button
+                      key={role.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRole(role.value);
+                        setUniqueId('');
+                      }}
+                      className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                        selectedRole === role.value
+                          ? `border-primary ${role.color} text-white`
+                          : 'border-border bg-secondary hover:border-primary/50'
+                      }`}
+                    >
+                      {role.icon}
+                      <span className="text-xs font-medium">{role.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Unique ID</label>
                 <div className="relative flex gap-2">
@@ -119,7 +165,7 @@ export default function Auth() {
                     <Input
                       value={uniqueId}
                       onChange={(e) => setUniqueId(e.target.value)}
-                      placeholder="EM-XXXXXX"
+                      placeholder={`${selectedRole === 'user' ? 'EM' : selectedRole === 'police' ? 'PD' : selectedRole === 'fire_rescue' ? 'FR' : 'MD'}-XXXXXX`}
                       className="pl-10"
                       required
                     />

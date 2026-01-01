@@ -105,6 +105,7 @@ export type Database = {
           sender_id: string
           sender_name: string
           sender_unique_id: string
+          target_roles: string[] | null
         }
         Insert: {
           created_at?: string
@@ -116,6 +117,7 @@ export type Database = {
           sender_id: string
           sender_name: string
           sender_unique_id: string
+          target_roles?: string[] | null
         }
         Update: {
           created_at?: string
@@ -127,6 +129,7 @@ export type Database = {
           sender_id?: string
           sender_name?: string
           sender_unique_id?: string
+          target_roles?: string[] | null
         }
         Relationships: []
       }
@@ -229,6 +232,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -252,9 +276,32 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_users_by_role_nearby: {
+        Args: {
+          exclude_user_id?: string
+          radius_km?: number
+          target_role?: Database["public"]["Enums"]["user_role"]
+          user_lat: number
+          user_lon: number
+        }
+        Returns: {
+          distance_km: number
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          unique_id: string
+          user_id: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "user" | "police" | "fire_rescue" | "medical"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -381,6 +428,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["user", "police", "fire_rescue", "medical"],
+    },
   },
 } as const
