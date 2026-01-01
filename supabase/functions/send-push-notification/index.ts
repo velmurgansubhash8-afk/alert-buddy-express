@@ -13,6 +13,7 @@ interface PushNotificationRequest {
   latitude: number;
   longitude: number;
   excludeUserId: string;
+  targetRoles?: string[];
   radiusKm?: number;
 }
 
@@ -25,7 +26,7 @@ serve(async (req) => {
   try {
     const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
     if (!fcmServerKey) {
-      throw new Error('FCM_SERVER_KEY not configured');
+      console.warn('FCM_SERVER_KEY not configured - notifications will be skipped');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -39,37 +40,71 @@ serve(async (req) => {
       latitude, 
       longitude, 
       excludeUserId,
-      radiusKm = 1.0 
+      targetRoles = [],
+      radiusKm = 5.0 
     }: PushNotificationRequest = await req.json();
 
     console.log(`Processing push notification for alert ${alertId}`);
     console.log(`Location: ${latitude}, ${longitude}, Radius: ${radiusKm}km`);
+    console.log(`Target roles: ${targetRoles.length > 0 ? targetRoles.join(', ') : 'all users'}`);
 
-    // Get nearby users using the database function
-    const { data: nearbyUsers, error: nearbyError } = await supabase
-      .rpc('get_nearby_users', {
-        user_lat: latitude,
-        user_lon: longitude,
-        radius_km: radiusKm,
-        exclude_user_id: excludeUserId
-      });
+    let allNearbyUsers: { user_id: string; name: string; distance_km: number }[] = [];
 
-    if (nearbyError) {
-      console.error('Error getting nearby users:', nearbyError);
-      throw nearbyError;
+    if (targetRoles.length === 0) {
+      // No specific roles - get all nearby users
+      const { data: nearbyUsers, error: nearbyError } = await supabase
+        .rpc('get_nearby_users', {
+          user_lat: latitude,
+          user_lon: longitude,
+          radius_km: radiusKm,
+          exclude_user_id: excludeUserId
+        });
+
+      if (nearbyError) {
+        console.error('Error getting nearby users:', nearbyError);
+        throw nearbyError;
+      }
+
+      allNearbyUsers = nearbyUsers || [];
+    } else {
+      // Get users by specific roles
+      for (const role of targetRoles) {
+        const { data: roleUsers, error: roleError } = await supabase
+          .rpc('get_users_by_role_nearby', {
+            user_lat: latitude,
+            user_lon: longitude,
+            radius_km: radiusKm,
+            target_role: role,
+            exclude_user_id: excludeUserId
+          });
+
+        if (roleError) {
+          console.error(`Error getting ${role} users:`, roleError);
+          continue;
+        }
+
+        if (roleUsers) {
+          // Add unique users only
+          for (const user of roleUsers) {
+            if (!allNearbyUsers.find(u => u.user_id === user.user_id)) {
+              allNearbyUsers.push(user);
+            }
+          }
+        }
+      }
     }
 
-    console.log(`Found ${nearbyUsers?.length || 0} nearby users`);
+    console.log(`Found ${allNearbyUsers.length} nearby users/responders`);
 
-    if (!nearbyUsers || nearbyUsers.length === 0) {
+    if (allNearbyUsers.length === 0) {
       return new Response(
-        JSON.stringify({ success: true, notificationsSent: 0, message: 'No nearby users found' }),
+        JSON.stringify({ success: true, notificationsSent: 0, message: 'No nearby users found', nearbyUsersCount: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Get FCM tokens for nearby users
-    const nearbyUserIds = nearbyUsers.map((u: { user_id: string }) => u.user_id);
+    const nearbyUserIds = allNearbyUsers.map(u => u.user_id);
     const { data: tokens, error: tokensError } = await supabase
       .from('fcm_tokens')
       .select('token, user_id')
@@ -82,12 +117,24 @@ serve(async (req) => {
 
     console.log(`Found ${tokens?.length || 0} FCM tokens`);
 
-    if (!tokens || tokens.length === 0) {
+    if (!tokens || tokens.length === 0 || !fcmServerKey) {
       return new Response(
-        JSON.stringify({ success: true, notificationsSent: 0, message: 'No FCM tokens found for nearby users' }),
+        JSON.stringify({ 
+          success: true, 
+          notificationsSent: 0, 
+          message: fcmServerKey ? 'No FCM tokens found for nearby users' : 'FCM not configured',
+          nearbyUsersCount: allNearbyUsers.length
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Get emoji for emergency type
+    const typeEmoji = 
+      emergencyType === 'fire' ? '🔥' :
+      emergencyType === 'medical' ? '🏥' :
+      emergencyType === 'accident' ? '🚗' :
+      emergencyType === 'help' ? '🆘' : '🚨';
 
     // Send notifications to all tokens
     const notificationPromises = tokens.map(async ({ token }) => {
@@ -96,7 +143,7 @@ serve(async (req) => {
       const notification = {
         to: token,
         notification: {
-          title: `🚨 ${emergencyType.toUpperCase()} ALERT`,
+          title: `${typeEmoji} ${emergencyType.toUpperCase()} ALERT`,
           body: `${senderName} needs help nearby!`,
           click_action: mapsLink,
           icon: '/favicon.ico',
@@ -141,7 +188,7 @@ serve(async (req) => {
         success: true, 
         notificationsSent: successful,
         failed,
-        nearbyUsersCount: nearbyUsers.length
+        nearbyUsersCount: allNearbyUsers.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

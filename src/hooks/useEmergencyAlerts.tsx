@@ -15,28 +15,30 @@ interface EmergencyContact {
   phone: string;
 }
 
-interface NearbyUser {
-  user_id: string;
-  name: string;
-  unique_id: string;
-  distance_km: number;
-}
-
 interface EmergencyAlert {
   id: string;
+  sender_id: string;
   sender_name: string;
   sender_unique_id: string;
   emergency_type: string;
   latitude: number;
   longitude: number;
   maps_link: string;
+  target_roles: string[];
   created_at: string;
+}
+
+interface UserRole {
+  id: string;
+  user_id: string;
+  role: 'user' | 'police' | 'fire_rescue' | 'medical';
 }
 
 export function useEmergencyAlerts() {
   const { user } = useAuth();
   const { getCurrentLocation, generateMapsLink } = useGeolocation();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [alerts, setAlerts] = useState<EmergencyAlert[]>([]);
   const [sending, setSending] = useState(false);
@@ -46,7 +48,7 @@ export function useEmergencyAlerts() {
     if (!user) return;
 
     const fetchProfile = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('name, unique_id')
         .eq('user_id', user.id)
@@ -58,6 +60,25 @@ export function useEmergencyAlerts() {
     };
 
     fetchProfile();
+  }, [user]);
+
+  // Fetch user role
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUserRole = async () => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (data) {
+        setUserRole(data as UserRole);
+      }
+    };
+
+    fetchUserRole();
   }, [user]);
 
   // Fetch contacts
@@ -94,12 +115,27 @@ export function useEmergencyAlerts() {
         },
         (payload) => {
           const newAlert = payload.new as EmergencyAlert;
+          
+          // Check if this alert is relevant to the current user
+          const targetRoles = newAlert.target_roles || [];
+          const isRelevant = 
+            targetRoles.length === 0 || // No target roles means it's for everyone
+            (userRole && targetRoles.includes(userRole.role)) ||
+            targetRoles.includes('user'); // Always show if users are targeted
+          
           // Don't show own alerts as notifications
-          if (newAlert.sender_unique_id !== profile?.unique_id) {
+          if (newAlert.sender_unique_id !== profile?.unique_id && isRelevant) {
             setAlerts((prev) => [newAlert, ...prev]);
+            
+            const typeEmoji = 
+              newAlert.emergency_type === 'fire' ? '🔥' :
+              newAlert.emergency_type === 'medical' ? '🏥' :
+              newAlert.emergency_type === 'accident' ? '🚗' :
+              newAlert.emergency_type === 'help' ? '🆘' : '🚨';
+            
             toast({
-              title: '🚨 Emergency Alert!',
-              description: `${newAlert.sender_name} needs help! Type: ${newAlert.emergency_type}`,
+              title: `${typeEmoji} ${newAlert.emergency_type.toUpperCase()} Alert!`,
+              description: `${newAlert.sender_name} needs help nearby!`,
               variant: 'destructive',
             });
           }
@@ -110,7 +146,7 @@ export function useEmergencyAlerts() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, profile]);
+  }, [user, profile, userRole]);
 
   // Update user location periodically
   const updateLocation = useCallback(async () => {
@@ -140,7 +176,7 @@ export function useEmergencyAlerts() {
 
   // Send emergency alert
   const sendEmergencyAlert = useCallback(
-    async (emergencyType: string): Promise<{ success: boolean; nearbyCount: number }> => {
+    async (emergencyType: string, targetRoles: string[] = []): Promise<{ success: boolean; nearbyCount: number }> => {
       if (!user || !profile) {
         toast({
           title: 'Error',
@@ -156,7 +192,7 @@ export function useEmergencyAlerts() {
         // Get current location
         const location = await getCurrentLocation();
         if (!location) {
-          throw new Error('Could not get your location');
+          throw new Error('Could not get your location. Please enable location services.');
         }
 
         const mapsLink = generateMapsLink(location.latitude, location.longitude);
@@ -170,6 +206,7 @@ export function useEmergencyAlerts() {
           latitude: location.latitude,
           longitude: location.longitude,
           maps_link: mapsLink,
+          target_roles: targetRoles
         }).select().single();
 
         if (alertError) throw alertError;
@@ -185,7 +222,8 @@ export function useEmergencyAlerts() {
               latitude: location.latitude,
               longitude: location.longitude,
               excludeUserId: user.id,
-              radiusKm: 1.0
+              targetRoles,
+              radiusKm: 5.0
             }
           });
 
@@ -199,9 +237,17 @@ export function useEmergencyAlerts() {
           console.error('Failed to invoke push notification function:', pushErr);
         }
 
+        const typeEmoji = 
+          emergencyType === 'fire' ? '🔥' :
+          emergencyType === 'medical' ? '🏥' :
+          emergencyType === 'accident' ? '🚗' :
+          emergencyType === 'help' ? '🆘' : '🚨';
+
         toast({
-          title: 'Emergency Alert Sent!',
-          description: `Alert sent to ${nearbyCount} nearby user${nearbyCount !== 1 ? 's' : ''} and your emergency contacts.`,
+          title: `${typeEmoji} ${emergencyType.toUpperCase()} Alert Sent!`,
+          description: nearbyCount > 0 
+            ? `Notified ${nearbyCount} nearby ${targetRoles.length > 0 ? 'responders/users' : 'users'}`
+            : 'Alert broadcasted to the network',
         });
 
         return { success: true, nearbyCount };
@@ -277,6 +323,7 @@ export function useEmergencyAlerts() {
 
   return {
     profile,
+    userRole,
     contacts,
     alerts,
     sending,
