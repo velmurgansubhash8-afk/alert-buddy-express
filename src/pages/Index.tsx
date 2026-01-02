@@ -17,6 +17,7 @@ export default function Index() {
   const { user, loading: authLoading } = useAuth();
   const {
     profile,
+    userRole,
     contacts,
     alerts,
     sending,
@@ -57,6 +58,7 @@ export default function Index() {
         name={profile.name}
         uniqueId={profile.unique_id}
         locationStatus="active"
+        userRole={userRole?.role}
       />
 
       {/* Main Content */}
@@ -103,7 +105,7 @@ export default function Index() {
           </TabsContent>
 
           <TabsContent value="alerts" className="mt-0">
-            <AlertsFeed alerts={alerts} />
+            <AlertsFeed alerts={alerts} currentUserId={user?.id} />
           </TabsContent>
 
           <TabsContent value="quick" className="mt-0">

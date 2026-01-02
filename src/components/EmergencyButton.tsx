@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { Phone, Droplet, MessageCircle, AlertTriangle, Car, Heart, Flame, HelpCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { BloodGroupSelector } from './BloodGroupSelector';
 import { BloodRequestModal } from './BloodRequestModal';
 import { ChatRoom } from './ChatRoom';
@@ -14,14 +13,13 @@ interface EmergencyButtonProps {
 }
 
 const EMERGENCY_TYPES = [
-  { id: 'help', label: 'HELP', icon: HelpCircle, color: 'bg-blue-500', targetRoles: [] as string[] },
-  { id: 'accident', label: 'ACCIDENT', icon: Car, color: 'bg-yellow-500', targetRoles: ['medical', 'user'] },
-  { id: 'medical', label: 'MEDICAL', icon: Heart, color: 'bg-red-500', targetRoles: ['medical'] },
-  { id: 'fire', label: 'FIRE', icon: Flame, color: 'bg-orange-500', targetRoles: ['fire_rescue', 'user'] },
+  { id: 'help', label: 'HELP', icon: HelpCircle, color: 'bg-blue-500', targetRoles: ['user'] }, // Only nearby users
+  { id: 'accident', label: 'ACCIDENT', icon: Car, color: 'bg-yellow-500', targetRoles: ['medical'] }, // Only medical team
+  { id: 'medical', label: 'MEDICAL', icon: Heart, color: 'bg-red-500', targetRoles: ['medical', 'user'] }, // Medical + nearby users
+  { id: 'fire', label: 'FIRE', icon: Flame, color: 'bg-orange-500', targetRoles: ['fire_rescue', 'user'] }, // Fire rescue + nearby users
 ];
 
 export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isTriggering, setIsTriggering] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const [showBloodSelector, setShowBloodSelector] = useState(false);
@@ -51,10 +49,16 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
       setHoldProgress(prev => Math.min(prev + 2, 100));
     }, 30);
     
-    holdTimerRef.current = setTimeout(() => {
-      setIsExpanded(true);
+    // Long press triggers SOS immediately to ALL nearby users
+    holdTimerRef.current = setTimeout(async () => {
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       setHoldProgress(0);
+      setIsTriggering(true);
+      try {
+        await onTrigger('sos', []); // Empty array = all nearby users
+      } finally {
+        setIsTriggering(false);
+      }
     }, 1500);
   };
 
@@ -66,7 +70,6 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
 
   const handleTypeSelect = async (type: string, targetRoles: string[]) => {
     setIsTriggering(true);
-    setIsExpanded(false);
     
     try {
       await onTrigger(type, targetRoles);
@@ -187,40 +190,6 @@ export function EmergencyButton({ onTrigger, disabled }: EmergencyButtonProps) {
           </button>
         ))}
       </div>
-
-      {/* Expanded Type Selection Modal (when long pressing SOS) */}
-      <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
-        <DialogContent className="max-w-xs p-4">
-          <DialogTitle className="text-center text-lg font-bold mb-4">
-            🚨 Select Emergency Type
-          </DialogTitle>
-          <div className="grid grid-cols-2 gap-3">
-            {EMERGENCY_TYPES.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => handleTypeSelect(type.id, type.targetRoles)}
-                className={cn(
-                  'flex flex-col items-center justify-center gap-2 p-4 rounded-xl',
-                  type.color,
-                  'text-white font-semibold',
-                  'transition-all duration-200',
-                  'hover:scale-105 active:scale-95'
-                )}
-              >
-                <type.icon className="w-8 h-8" />
-                <span className="text-sm">{type.label}</span>
-              </button>
-            ))}
-            <button
-              onClick={() => handleTypeSelect('sos', [])}
-              className="col-span-2 flex items-center justify-center gap-2 p-4 rounded-xl bg-destructive text-destructive-foreground font-bold transition-all hover:scale-105 active:scale-95"
-            >
-              <AlertTriangle className="w-8 h-8" />
-              <span>SEND SOS TO ALL</span>
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Blood Group Selector */}
       {showBloodSelector && (
