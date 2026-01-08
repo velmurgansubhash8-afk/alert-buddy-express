@@ -1,5 +1,6 @@
-import { User, LogOut, MapPin, Settings, Info, Shield, Flame, Heart } from 'lucide-react';
+import { User, LogOut, MapPin, Settings, Info, Shield, Flame, Heart, Bell, BellOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useOneSignal } from '@/hooks/useOneSignal';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -16,7 +17,9 @@ import {
 } from '@/components/ui/dialog';
 import { VSLogo } from './VSLogo';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface ProfileHeaderProps {
   name: string;
@@ -34,7 +37,26 @@ const ROLE_CONFIG = {
 
 export function ProfileHeader({ name, uniqueId, locationStatus = 'active', userRole }: ProfileHeaderProps) {
   const { signOut } = useAuth();
+  const { isSubscribed, requestPermission, unsubscribe } = useOneSignal();
   const [showAbout, setShowAbout] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+
+  const handleNotificationToggle = async () => {
+    setIsToggling(true);
+    try {
+      if (isSubscribed) {
+        await unsubscribe();
+        toast.success('Push notifications disabled');
+      } else {
+        await requestPermission();
+        toast.success('Push notifications enabled');
+      }
+    } catch (error) {
+      toast.error('Failed to update notification settings');
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   const statusColors = {
     active: 'bg-success',
@@ -78,7 +100,19 @@ export function ProfileHeader({ name, uniqueId, locationStatus = 'active', userR
               <Settings className="w-5 h-5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-56">
+            <div className="flex items-center justify-between px-2 py-1.5">
+              <div className="flex items-center gap-2">
+                {isSubscribed ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                <span className="text-sm">Notifications</span>
+              </div>
+              <Switch
+                checked={isSubscribed}
+                onCheckedChange={handleNotificationToggle}
+                disabled={isToggling}
+              />
+            </div>
+            <DropdownMenuSeparator />
             <DropdownMenuItem className="gap-2">
               <MapPin className="w-4 h-4" />
               <span>Location: {locationStatus}</span>
