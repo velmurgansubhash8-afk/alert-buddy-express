@@ -62,15 +62,15 @@ export function useOneSignal() {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('onesignal_subscriptions')
+      const { error } = await (supabase
+        .from('onesignal_subscriptions' as any)
         .upsert({
           user_id: user.id,
           player_id: playerId,
           platform: 'web'
         }, {
           onConflict: 'user_id,player_id'
-        });
+        }) as any);
 
       if (error) {
         console.error('Error saving OneSignal subscription:', error);
@@ -86,10 +86,10 @@ export function useOneSignal() {
     if (!user) return;
 
     try {
-      await supabase
-        .from('onesignal_subscriptions')
+      await (supabase
+        .from('onesignal_subscriptions' as any)
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', user.id) as any);
     } catch (err) {
       console.error('Error removing OneSignal subscription:', err);
     }
