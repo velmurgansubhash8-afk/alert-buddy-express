@@ -24,9 +24,11 @@ serve(async (req) => {
   }
 
   try {
-    const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
-    if (!fcmServerKey) {
-      console.warn('FCM_SERVER_KEY not configured - notifications will be skipped');
+    const oneSignalAppId = Deno.env.get('ONESIGNAL_APP_ID');
+    const oneSignalApiKey = Deno.env.get('ONESIGNAL_REST_API_KEY');
+    
+    if (!oneSignalAppId || !oneSignalApiKey) {
+      console.warn('OneSignal credentials not configured - notifications will be skipped');
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -103,26 +105,38 @@ serve(async (req) => {
       );
     }
 
-    // Get FCM tokens for nearby users
-    const nearbyUserIds = allNearbyUsers.map(u => u.user_id);
-    const { data: tokens, error: tokensError } = await supabase
-      .from('fcm_tokens')
-      .select('token, user_id')
-      .in('user_id', nearbyUserIds);
-
-    if (tokensError) {
-      console.error('Error getting FCM tokens:', tokensError);
-      throw tokensError;
-    }
-
-    console.log(`Found ${tokens?.length || 0} FCM tokens`);
-
-    if (!tokens || tokens.length === 0 || !fcmServerKey) {
+    if (!oneSignalAppId || !oneSignalApiKey) {
       return new Response(
         JSON.stringify({ 
           success: true, 
           notificationsSent: 0, 
-          message: fcmServerKey ? 'No FCM tokens found for nearby users' : 'FCM not configured',
+          message: 'OneSignal not configured',
+          nearbyUsersCount: allNearbyUsers.length
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get OneSignal player IDs for nearby users
+    const nearbyUserIds = allNearbyUsers.map(u => u.user_id);
+    const { data: playerIds, error: playerError } = await supabase
+      .from('onesignal_subscriptions')
+      .select('player_id, user_id')
+      .in('user_id', nearbyUserIds);
+
+    if (playerError) {
+      console.error('Error getting OneSignal player IDs:', playerError);
+      throw playerError;
+    }
+
+    console.log(`Found ${playerIds?.length || 0} OneSignal subscriptions`);
+
+    if (!playerIds || playerIds.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          notificationsSent: 0, 
+          message: 'No OneSignal subscriptions found for nearby users',
           nearbyUsersCount: allNearbyUsers.length
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -136,58 +150,62 @@ serve(async (req) => {
       emergencyType === 'accident' ? '🚗' :
       emergencyType === 'help' ? '🆘' : '🚨';
 
-    // Send notifications to all tokens
-    const notificationPromises = tokens.map(async ({ token }) => {
-      const mapsLink = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`;
-      
-      const notification = {
-        to: token,
-        notification: {
-          title: `${typeEmoji} ${emergencyType.toUpperCase()} ALERT`,
-          body: `${senderName} needs help nearby!`,
-          click_action: mapsLink,
-          icon: '/favicon.ico',
-          sound: 'default',
-          priority: 'high'
-        },
-        data: {
-          alertId,
-          senderName,
-          emergencyType,
-          latitude: latitude.toString(),
-          longitude: longitude.toString(),
-          mapsLink,
-          type: 'emergency_alert'
-        },
-        priority: 'high',
-        content_available: true
-      };
+    const mapsLink = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`;
 
-      const response = await fetch('https://fcm.googleapis.com/fcm/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `key=${fcmServerKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(notification),
-      });
+    // Send notification via OneSignal
+    const notification = {
+      app_id: oneSignalAppId,
+      include_player_ids: playerIds.map(p => p.player_id),
+      headings: { en: `${typeEmoji} ${emergencyType.toUpperCase()} ALERT` },
+      contents: { en: `${senderName} needs help nearby!` },
+      url: mapsLink,
+      data: {
+        alertId,
+        senderName,
+        emergencyType,
+        latitude: latitude.toString(),
+        longitude: longitude.toString(),
+        mapsLink,
+        type: 'emergency_alert'
+      },
+      priority: 10,
+      ttl: 300,
+      android_channel_id: 'emergency_alerts',
+      ios_sound: 'default',
+      android_sound: 'default'
+    };
 
-      const result = await response.json();
-      console.log(`FCM response for token ${token.substring(0, 20)}...:`, result);
-      return result;
+    console.log('Sending OneSignal notification:', JSON.stringify(notification, null, 2));
+
+    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${oneSignalApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(notification),
     });
 
-    const results = await Promise.allSettled(notificationPromises);
-    const successful = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.filter(r => r.status === 'rejected').length;
+    const result = await response.json();
+    console.log('OneSignal response:', result);
 
-    console.log(`Notifications sent: ${successful} successful, ${failed} failed`);
+    if (!response.ok) {
+      console.error('OneSignal error:', result);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: result.errors?.[0] || 'OneSignal notification failed',
+          nearbyUsersCount: allNearbyUsers.length
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        notificationsSent: successful,
-        failed,
+        notificationsSent: playerIds.length,
+        onesignalId: result.id,
         nearbyUsersCount: allNearbyUsers.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
