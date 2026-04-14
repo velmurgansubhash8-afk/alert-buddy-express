@@ -63,7 +63,7 @@ export function usePushNotifications() {
 
     try {
       // Dynamically import OneSignal native plugin
-      const { OneSignal } = await import('onesignal-cordova-plugin');
+      const OneSignal = (await import('onesignal-cordova-plugin')).default;
 
       // Initialize OneSignal
       OneSignal.initialize(ONESIGNAL_APP_ID);
