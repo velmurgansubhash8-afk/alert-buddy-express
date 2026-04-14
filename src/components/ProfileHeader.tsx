@@ -151,7 +151,13 @@ export function ProfileHeader({ name, uniqueId, locationStatus = 'active', userR
                 <li>Real-time location sharing</li>
                 <li>Blood donation requests</li>
                 <li>Emergency contact management</li>
+                <li>Prescription image upload for medical emergencies</li>
               </ul>
+            </div>
+            <div className="space-y-2 pt-2 border-t">
+              <h4 className="font-semibold">Developed by:</h4>
+              <p className="text-sm text-muted-foreground">Subhash, Vishnuvarathan, Vijayan</p>
+              <p className="text-sm text-muted-foreground font-medium">Maha Barathi Engineering College</p>
             </div>
             <div className="pt-2 border-t">
               <p className="text-xs text-muted-foreground">Version 1.0.0</p>
