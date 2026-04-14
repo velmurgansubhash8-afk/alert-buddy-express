@@ -79,7 +79,7 @@ export function usePushNotifications() {
 
       if (granted) {
         // Get the player/subscription ID
-        const subId = OneSignal.User.pushSubscription.getPushSubscriptionId();
+        const subId = await OneSignal.User.pushSubscription.getIdAsync();
         if (subId) {
           await saveSubscription(subId);
           toast.success('Push notifications enabled!');
