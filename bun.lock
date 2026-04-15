@@ -88,9 +88,9 @@
   "packages": {
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
 
-    "@awesome-cordova-plugins/core": ["@awesome-cordova-plugins/core@9.1.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@awesome-cordova-plugins/core/-/core-9.1.2.tgz", { "dependencies": { "@types/cordova": "latest" }, "peerDependencies": { "rxjs": "^5.5.0 || ^6.5.0 || ^7.3.0" } }, "sha512-5i9LCZroyjcHp5PrBQE/vjv46odHq94iBgWez5dWGmm3Te8Zq99tppGUqCzGoSHBd4/GoodN1pHDrnnXy0Tylw=="],
+    "@awesome-cordova-plugins/core": ["@awesome-cordova-plugins/core@9.1.3", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@awesome-cordova-plugins/core/-/core-9.1.3.tgz", { "dependencies": { "@types/cordova": "latest" }, "peerDependencies": { "rxjs": "^5.5.0 || ^6.5.0 || ^7.3.0" } }, "sha512-+yzZv6zZbAPl0Bpp1o9xYhfZEwRAUx3Vd4L+Wg8/6X7wJJP1ddPSBvqVopkS+AD09QpcFoAut+hapobzJH7gWw=="],
 
-    "@awesome-cordova-plugins/onesignal": ["@awesome-cordova-plugins/onesignal@9.1.2", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@awesome-cordova-plugins/onesignal/-/onesignal-9.1.2.tgz", { "peerDependencies": { "@awesome-cordova-plugins/core": "^9.1.2", "rxjs": "^5.5.0 || ^6.5.0 || ^7.3.0" } }, "sha512-SPPw8RNa3AyqSc5OL9zyDSSRhlcQm+MnsA8jPao8Ex9MltKcbL2eoeQtGR16ywI4IbEK4bh/F1bevQPuJRemLA=="],
+    "@awesome-cordova-plugins/onesignal": ["@awesome-cordova-plugins/onesignal@9.1.3", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@awesome-cordova-plugins/onesignal/-/onesignal-9.1.3.tgz", { "peerDependencies": { "@awesome-cordova-plugins/core": "^9.1.3", "rxjs": "^5.5.0 || ^6.5.0 || ^7.3.0" } }, "sha512-yzCurVChFBzoEnAQZlui8ZzmhfRH/oupcbwgb6LuXUv5OholhmMfN7dd1EPWfRZxdR9Msrl7adneSnStobsnrg=="],
 
     "@babel/runtime": ["@babel/runtime@7.28.2", "", {}, "sha512-KHp2IflsnGywDjBWDkR9iEqiWSpc8GIi0lgTT3mOElT0PP1tG26P4tmFI2YvAdzgq9RGyoHZQEIEdZy6Ec5xCA=="],
 
